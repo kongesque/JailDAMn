@@ -7,6 +7,9 @@ Yi Nian*, Shenzhe Zhu*, Yuehan Qin, Shawn Li, Ziyi Wang,
 [**📝 arxiv**](https://arxiv.org/abs/2504.03770)
 
 **<font color='red'>❗️Content Warning: This repo contains examples of harmful language.</font>**
+<figure style="margin: 0 auto; text-align: center; width: fit-content;">
+  <img src="asset/JailDam.jpg" style="width: 600px;">
+</figure>
 ## NEWS!!:
 - 2025/09/03 We just released our code, thank you for your patient
 - 2025/07/08 Our paper was accepted by COLM 2025!!!
@@ -15,10 +18,6 @@ Yi Nian*, Shenzhe Zhu*, Yuehan Qin, Shawn Li, Ziyi Wang,
 - [x] 2025/04/09 Release paper on Arxiv
 - [x] 2025/05/25 Release data
 - [x] 2025/09/03 Release Code
-
-<figure style="margin: 0 auto; text-align: center; width: fit-content;">
-  <img src="asset/JailDam.jpg" style="width: 600px;">
-</figure>
 
 ## Quick Start
 
