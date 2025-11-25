@@ -10,6 +10,7 @@ Yi Nian*, Shenzhe Zhu*, Yuehan Qin, Shawn Li, Ziyi Wang,
 <figure style="margin: 0 auto; text-align: center; width: fit-content;">
   <img src="asset/JailDam.jpg" style="width: 600px;">
 </figure>
+
 ## NEWS!!:
 - 2025/09/03 We just released our code, thank you for your patient
 - 2025/07/08 Our paper was accepted by COLM 2025!!!
