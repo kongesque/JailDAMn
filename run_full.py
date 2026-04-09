@@ -370,6 +370,16 @@ if __name__ == "__main__":
 
     print("\nTraining complete.")
 
+    # Save clean state before evaluation — adaptive memory update mutates concept_embeddings
+    # across runs, so we reset between each evaluation pass
+    concept_embeddings_clean = concept_embeddings.data.clone()
+    concept_freq_clean = dict(concept_freq)
+
+    def reset_state():
+        concept_embeddings.data.copy_(concept_embeddings_clean)
+        concept_freq.clear()
+        concept_freq.update(concept_freq_clean)
+
     # Per-dataset evaluation: pair val_safe with each unsafe dataset so AUROC has both classes
     print("\n=== Evaluating (per-dataset: val_safe + each unsafe) ===")
     per_ds_configs = [
@@ -382,11 +392,13 @@ if __name__ == "__main__":
     for loaders, names in per_ds_configs:
         ds_name = names[1]
         print(f"\n  -- {ds_name} --")
+        reset_state()
         r = evaluate(loaders, names, concept_embeddings, autoencoder, memory_network, device, concept_freq)
         per_ds_results[ds_name] = r["overall"]
 
     # Overall: val_safe + all unsafe combined
     print("\n=== Evaluating (overall: val_safe + all unsafe) ===")
+    reset_state()
     all_loaders = [val_dl, mmsafety_dl, figstep_dl, nano_dl]
     all_names   = ["val_safe", "MM-SafetyBench", "FigStep", "JailbreakV-Nano"]
     overall_res = evaluate(all_loaders, all_names, concept_embeddings, autoencoder, memory_network, device, concept_freq)
