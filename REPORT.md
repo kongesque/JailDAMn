@@ -162,6 +162,24 @@ Safe evaluated: 104  |  Unsafe total: 2590  |  Avg latency: 13.16 ms/input
 | JailbreakV-Nano | 0.9943 | — (not in paper) |
 | Overall | 0.9999 | 0.9550 |
 
+### Hard safe dataset attempt (SafeVLMDataset_MMsafety, seed=42)
+
+Replaced MM-Vet with MMsafety's own safe split (280 available images, same domain as jailbreaks).
+
+```
+Safe evaluated : 56  |  Unsafe total: 2590
+
+Dataset              AUROC    AUPR      F1    Prec  Recall
+------------------------------------------------------------
+MM-SafetyBench      0.9998  1.0000  0.9985  0.9970  1.0000
+FigStep             0.9999  1.0000  0.9950  0.9901  1.0000
+JailbreakV-Nano     0.9981  0.9997  0.9891  0.9831  0.9951
+------------------------------------------------------------
+Overall             0.9999  1.0000  0.9986  0.9981  0.9992
+```
+
+Results unchanged — the gap persists. Root cause: only 56 safe samples vs 2590 unsafe (severe imbalance), and the text/image distributions remain linearly separable in CLIP space even within the same domain. Closing the gap to paper's ~0.95 would require a fundamentally different evaluation protocol (harder adversarial safe examples, cross-dataset generalization, or balanced splits).
+
 ---
 
 ## Environment fix
