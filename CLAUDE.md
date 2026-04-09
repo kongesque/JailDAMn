@@ -15,9 +15,43 @@ conda activate llava
 
 Python 3.11 with PyTorch 2.2.0 (CUDA 12.1). No pip requirements.txt — all dependencies are in `environment.yml`.
 
+### Actual Runtime Environment (verified 2026-04-09)
+
+**No conda available** on this machine. Packages installed directly via pip into the system Python:
+
+```bash
+pip3 install transformers openai-clip scikit-learn accelerate datasets sentence-transformers
+```
+
+| Component | Version |
+|-----------|---------|
+| Python | 3.11.10 |
+| PyTorch | 2.4.1+cu124 |
+| CUDA | 12.4 |
+| GPU | NVIDIA GeForce RTX 3090 (1×) |
+| transformers | 5.5.1 |
+| openai-clip | 1.0.1 |
+| scikit-learn | 1.8.0 |
+| Jupyter | 4.2.5 (JupyterLab) |
+
+**Note:** PyTorch version differs from `environment.yml` (2.2.0 pinned) — 2.4.1 is installed and works.
+
 ## Running the Pipeline
 
 The complete training and evaluation pipeline lives in `demo.ipynb`. Run it with Jupyter after activating the conda environment. There is no CLI entrypoint or test runner — validation is done through metrics (AUROC, AUPR, F1) computed within the notebook.
+
+### Dataset Requirements (must be present before running)
+
+The notebook fails at cell 1 if datasets are missing. All four loaders expect data under `/data/`:
+
+| Loader | Required path |
+|--------|--------------|
+| `UnsafeVLMDataset_28k.py` | `/data/jailbreakv_28k/` (JSON + images) |
+| `UnsafeVLMDataset_MMsafety.py` | `/data/mmsafety/imgs/` and `/data/mmsafety/unsafe_input/` |
+| `UnsafeVLMDataset_fig_step.py` | `/data/fig_step/` (check loader for exact path) |
+| `VLMDataset_mmvet.py` | `/data/mm-vet/sample.json` and corresponding images |
+
+Without these, all datasets load 0 samples and `DataLoader` raises `ValueError: num_samples should be a positive integer value`.
 
 ## Architecture
 
