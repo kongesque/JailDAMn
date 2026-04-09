@@ -55,9 +55,13 @@ def compute_concept_similarities(dataloader, model, concept_embeddings,processor
                 decoded_texts = processor.tokenizer.batch_decode(input_ids, skip_special_tokens=True)
                 all_decoded_texts.extend(decoded_texts)  # Store decoded texts
 
-                # Get embeddings
+                # Get embeddings (extract tensor for transformers ≥5.x structured outputs)
                 image_embeddings = model.get_image_features(pixel_values=pixel_values)
+                if not isinstance(image_embeddings, torch.Tensor):
+                    image_embeddings = image_embeddings.pooler_output
                 text_embeddings = model.get_text_features(input_ids=input_ids, attention_mask=attention_mask)
+                if not isinstance(text_embeddings, torch.Tensor):
+                    text_embeddings = text_embeddings.pooler_output
 
                 # Normalize embeddings (L2 normalization for cosine similarity)
                 image_embeddings = torch.nn.functional.normalize(image_embeddings, p=2, dim=1)
@@ -133,6 +137,9 @@ def main(unsafe_dataset,safe_dataset,concept_numbers):
 
     text_inputs1 = processor(text=merged_list, return_tensors="pt", padding=True).to(device)
     text_embeddings1 = clip_model.get_text_features(**text_inputs1)
+    # transformers ≥5.x may return a structured output; extract the tensor if so
+    if not isinstance(text_embeddings1, torch.Tensor):
+        text_embeddings1 = text_embeddings1.pooler_output
     concept_embeddings = F.normalize(text_embeddings1, p=2, dim=1)  # Normalize once (1300,768)
 
     # Define the number of samples to use from the unsafe dataset

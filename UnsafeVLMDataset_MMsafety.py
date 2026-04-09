@@ -116,7 +116,7 @@ def main(model,processor):
     # Load CLIP model and processor
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # Define correct paths
-    base_path = "/"
+    base_path = "/data/mmsafety"
     embedding_base_path = "/data/mmsafety/unsafe_input/weights"
 
     categories = [

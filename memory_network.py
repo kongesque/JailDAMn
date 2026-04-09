@@ -54,12 +54,17 @@ class MemoryNetwork(nn.Module):
         """Encode text input using CLIP"""
         with torch.no_grad():
             text_embedding = self.clip_model.get_text_features(input_ids=input_ids, attention_mask=attention_mask)
+        # transformers ≥5.x may return a structured output; extract the tensor if so
+        if not isinstance(text_embedding, torch.Tensor):
+            text_embedding = text_embedding.pooler_output
         return text_embedding  # Shape: [batch, 768]
 
     def encode_image(self, pixel_values):
         """Encode image input using CLIP"""
         with torch.no_grad():
             image_embedding = self.clip_model.get_image_features(pixel_values=pixel_values)
+        if not isinstance(image_embedding, torch.Tensor):
+            image_embedding = image_embedding.pooler_output
         return image_embedding  # Shape: [batch, 768]
 
     def attention_memory_lookup(self, text_embedding, image_embedding):
