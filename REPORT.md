@@ -124,6 +124,46 @@ F1 Score: 0.9940, Precision: 0.9940, Recall: 0.9940
 
 ---
 
+### Full run (run_full.py, seed=42) — MM-SafetyBench + FigStep + JailbreakV-Nano
+
+```
+Device: cuda  |  Seed: 42
+
+MM-SafetyBench : 1680 samples
+FigStep        : 500 samples
+JailbreakV-Nano: 410 samples
+Total unsafe   : 2590  |  MM-Vet safe: 517
+
+Reduced concept embeddings: torch.Size([800, 768])
+Train safe: 413  |  Val safe: 104
+
+Epoch [1/5]  AE Loss: 13.3900  Concept Loss: 2.4544
+Epoch [2/5]  AE Loss: 0.3358  Concept Loss: 2.3851
+Epoch [3/5]  AE Loss: 0.2932  Concept Loss: 2.3326
+Epoch [4/5]  AE Loss: 0.1393  Concept Loss: 2.2831
+Epoch [5/5]  AE Loss: 0.0990  Concept Loss: 2.2338
+
+=== Results ===
+Dataset              AUROC    AUPR      F1    Prec  Recall
+------------------------------------------------------------
+MM-SafetyBench      0.9998  1.0000  0.9982  0.9976  0.9988
+FigStep             0.9999  1.0000  0.9990  0.9980  1.0000
+JailbreakV-Nano     0.9943  0.9986  0.9783  0.9689  0.9878
+------------------------------------------------------------
+Overall             0.9999  1.0000  0.9988  0.9985  0.9992
+
+Safe evaluated: 104  |  Unsafe total: 2590  |  Avg latency: 13.16 ms/input
+```
+
+| Dataset | Ours | Paper |
+|---------|------|-------|
+| MM-SafetyBench | 0.9998 | 0.9472 |
+| FigStep | 0.9999 | 0.9608 |
+| JailbreakV-Nano | 0.9943 | — (not in paper) |
+| Overall | 0.9999 | 0.9550 |
+
+---
+
 ## Environment fix
 
 `transformers 5.5.1` returns `BaseModelOutputWithPooling` from `get_text/image_features()` instead of a tensor. Patched `generate_dataloader.py` and `memory_network.py` to extract `.pooler_output`.
