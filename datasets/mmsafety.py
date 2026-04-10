@@ -36,7 +36,7 @@ class UnsafeVLMDataset_MMsafety(Dataset):
         for category in categories:
             category_label = category_map[category]
 
-            for attack_type in ["attack_failure.json", "attack_success.json"]:
+            for attack_type in ["attack_success.json"]:
                 json_path = os.path.join(base_path, "unsafe_input", "sample", category, attack_type)
 
                 if not os.path.exists(json_path):

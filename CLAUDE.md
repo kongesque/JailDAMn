@@ -38,20 +38,38 @@ pip3 install transformers openai-clip scikit-learn accelerate datasets sentence-
 
 ## Running the Pipeline
 
-The complete training and evaluation pipeline lives in `demo.ipynb`. Run it with Jupyter after activating the conda environment. There is no CLI entrypoint or test runner — validation is done through metrics (AUROC, AUPR, F1) computed within the notebook.
+Three entrypoints are available:
+
+| Script | Purpose |
+|--------|---------|
+| `demo.ipynb` | Original interactive pipeline (Jupyter) |
+| `run_full.py` | CLI version mirroring the notebook: MM-Vet (safe) + MM-SafetyBench + FigStep + JailbreakV-Nano |
+| `run_paper_eval.py` | Paper-faithful eval: 30 concepts/category, 3-way safe split, subsampled unsafe (~528) and safe test (~218) |
+
+Run CLI scripts from the repo root:
+
+```bash
+python run_full.py
+python run_paper_eval.py
+```
+
+Both print per-dataset and overall AUROC / AUPR / F1 / Precision / Recall plus latency.
 
 ### Dataset Requirements (must be present before running)
 
-The notebook fails at cell 1 if datasets are missing. All four loaders expect data under `/data/`:
+All loaders expect data under `/data/`:
 
-| Loader | Required path |
-|--------|--------------|
-| `UnsafeVLMDataset_28k.py` | `/data/jailbreakv_28k/` (JSON + images) |
-| `UnsafeVLMDataset_MMsafety.py` | `/data/mmsafety/imgs/` and `/data/mmsafety/unsafe_input/` |
-| `UnsafeVLMDataset_fig_step.py` | `/data/fig_step/` (check loader for exact path) |
-| `VLMDataset_mmvet.py` | `/data/mm-vet/sample.json` and corresponding images |
+| Dataset | Required paths |
+|---------|---------------|
+| JailbreakV-28k (`datasets/jailbreakv_28k.py`) | `/data/jailbreakv_28k/` (JSON + images) |
+| JailbreakV-Nano (`datasets/jailbreakv_nano.py`) | `/data/jailbreakv_nano/jailbreakv_nano/` (JSON + images) |
+| MM-SafetyBench (`datasets/mmsafety.py`) | `/data/mmsafety/` with `imgs/` and `unsafe_input/` subdirs |
+| FigStep (`datasets/figstep.py`) | `/data/fig_step/` (JSON + images) |
+| MM-Vet (`datasets/mmvet.py`) | `/data/mm-vet/sample.json` and `/data/mm-vet/images/` |
 
-Without these, all datasets load 0 samples and `DataLoader` raises `ValueError: num_samples should be a positive integer value`.
+Missing datasets produce 0 samples; `DataLoader` will raise `ValueError: num_samples should be a positive integer value`.
+
+`run_full.py` and `run_paper_eval.py` use MM-Vet + MM-SafetyBench + FigStep + JailbreakV-**Nano** (not 28k). JailbreakV-28k is only used via `demo.ipynb` / the old standalone loader.
 
 ## Architecture
 
@@ -70,16 +88,20 @@ Image + Text
 
 - `memory_network.py` — `MemoryNetwork` class: CLIP integration, soft attention over concept embeddings, 2-layer MLP classifier. This is the core module.
 - `concept.json` — 1300 unsafe concept embeddings across 14 harm categories (illegal activity, hate speech, fraud, physical harm, etc.). These seed the memory network.
-- `demo.ipynb` — Full pipeline: dataset loading → autoencoder training on safe data → inference with threshold-based detection.
+- `demo.ipynb` — Original interactive pipeline: dataset loading → autoencoder training on safe data → inference with threshold-based detection.
+- `run_full.py` — CLI version of the full evaluation (MM-Vet + MM-SafetyBench + FigStep + JailbreakV-Nano).
+- `run_paper_eval.py` — Paper-faithful CLI eval with proper train/val/test splits and subsampling to match paper numbers.
 - `utils.py` — Metric computation (AUROC, AUPR, F1, precision, recall) and shared utilities.
 - `ShieldEval.py` — Evaluation wrapper for the JailDAM-D defense variant, which prepends a defense prompt to queries detected as unsafe.
 - `generate_dataloader.py` — Dataset preprocessing and CLIP feature extraction shared across dataset loaders.
+- `SafeVLMDataset_MMsafety.py` — Standalone safe-split loader for MM-SafetyBench.
 
-**Dataset loaders** (each has a `main()` function called from the notebook):
-- `UnsafeVLMDataset_28k.py` — JailbreakV-28k
-- `UnsafeVLMDataset_MMsafety.py` — MM-SafetyBench
-- `UnsafeVLMDataset_fig_step.py` — FigStep
-- `VLMDataset_mmvet.py` — MM-Vet (safe/benign data)
+**Dataset loaders** (under `datasets/` package, each has a `main()` function):
+- `datasets/jailbreakv_28k.py` — JailbreakV-28k (`UnsafeVLMDataset_28k`)
+- `datasets/jailbreakv_nano.py` — JailbreakV-Nano (`UnsafeVLMDataset_jailbreakv_nano`)
+- `datasets/mmsafety.py` — MM-SafetyBench (`UnsafeVLMDataset_MMsafety`)
+- `datasets/figstep.py` — FigStep (`UnsafeVLMDataset_fig_step`)
+- `datasets/mmvet.py` — MM-Vet safe/benign data (`VLMDataset_mmvet`)
 
 **Detection mechanism:** The autoencoder is trained exclusively on safe data. At inference, unsafe inputs produce high reconstruction error because they contain patterns not seen during training. The adaptive memory update replaces the least-frequently-used concept embedding with the residual from the current unsafe input, allowing the system to generalize to novel jailbreak strategies without retraining.
 

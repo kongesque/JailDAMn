@@ -7,7 +7,7 @@ from transformers import CLIPProcessor
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-BASE_PATH = "/data/jailbreakv_nano/jailbreakv_nano"
+BASE_PATH = "/data/jailbreakv_nano"
 
 
 class UnsafeVLMDataset_jailbreakv_nano(Dataset):
