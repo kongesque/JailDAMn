@@ -21,12 +21,12 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124
 
 Download datasets and place under `/data/`:
 
-| Dataset | Path |
-|---------|------|
-| MM-SafetyBench | `/data/mmsafety/` |
-| FigStep | `/data/fig_step/` |
-| JailbreakV-Nano | `/data/jailbreakv_nano/` |
-| MM-Vet | `/data/mm-vet/` |
+| Dataset | Download | Path |
+|---------|----------|------|
+| MM-SafetyBench | [download](https://drive.google.com/file/d/1VHBWdJak4BNYTlfP63BsoxqhQyEfVH0N/view?usp=drive_link) | `/data/mmsafety/` |
+| FigStep | [download](https://drive.google.com/file/d/1_hK1r8YOuuY-0smjRPWwiGtJ1xDRyJ7c/view?usp=drive_link) | `/data/fig_step/` |
+| JailbreakV-Nano | [download](https://drive.google.com/file/d/1gYh_xrLPjhJTv-2OFKqpUDQEQ0AZdPX5/view?usp=drive_link) | `/data/jailbreakv_nano/` |
+| MM-Vet | [download](https://drive.google.com/file/d/1KuntCKnviJhKN4WlMOI4GdD-LtLNQHOt/view?usp=drive_link) | `/data/mm-vet/` |
 
 ## Run
 
