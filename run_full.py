@@ -239,14 +239,14 @@ if __name__ == "__main__":
     mmsafety_ds, _  = main_mmsafety(ds_model, ds_processor)
     figstep_ds,  _  = main_figstep(ds_model, ds_processor)
     nano_ds,     _  = main_nano(ds_model, ds_processor)
-    safe_ds,     _  = main_safe_mmvet(ds_model, ds_processor)
+    safe_ds,     _  = main_safe_mmsafety(ds_model, ds_processor)
 
     unsafe_combined = ConcatDataset([mmsafety_ds, figstep_ds, nano_ds])
     print(f"\nMM-SafetyBench : {len(mmsafety_ds)}")
     print(f"FigStep        : {len(figstep_ds)}")
     print(f"JailbreakV-Nano: {len(nano_ds)}")
     print(f"Total unsafe   : {len(unsafe_combined)}")
-    print(f"MM-Vet safe    : {len(safe_ds)}")
+    print(f"MMsafety safe  : {len(safe_ds)}  (hard safe — same domain as jailbreaks)")
 
     # Concept embeddings
     samples_per_category = 100
