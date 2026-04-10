@@ -201,6 +201,67 @@ def extract_scores(dataloaders, concept_embeddings, autoencoder, memory_network,
     return np.array(all_labels), np.array(all_scores), total_time, total_inputs
 
 
+def extract_scores_tagged(tagged_dataloaders, concept_embeddings, autoencoder, memory_network, device, concept_frequency_total):
+    """
+    Run one joint forward pass over all dataloaders, tracking per-tag labels and scores.
+
+    tagged_dataloaders: list of (tag, dataloader) pairs processed in order.
+    The adaptive memory is updated continuously across all batches from all tags,
+    so later datasets see a memory that has already adapted to earlier ones.
+
+    Returns:
+        tag_labels: dict tag -> np.array of binary labels
+        tag_scores: dict tag -> np.array of reconstruction errors
+        total_time, total_inputs: for latency reporting
+    """
+    autoencoder.eval()
+    concept_embeddings = concept_embeddings.to(device)
+
+    tag_labels  = {}
+    tag_scores  = {}
+    total_inputs, total_time = 0, 0.0
+
+    with torch.no_grad():
+        for tag, dataloader in tagged_dataloaders:
+            t_labels, t_scores = [], []
+            for batch in dataloader:
+                t0 = time.time()
+                pixel_values   = batch["pixel_values"].to(device)
+                input_ids      = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                labels = batch["category"].cpu().numpy()
+
+                _, _, text_emb, img_emb, _, _ = memory_network.forward(
+                    text_input_ids=input_ids,
+                    text_attention_mask=attention_mask,
+                    image_pixel_values=pixel_values,
+                )
+
+                sim_img  = img_emb  @ concept_embeddings[:, :768].T
+                sim_txt  = text_emb @ concept_embeddings[:, 768:].T
+                features = torch.cat((sim_txt, sim_img), dim=-1)
+
+                concept_embeddings, concept_frequency_total = update_concept_embeddings(
+                    concept_embeddings, concept_frequency_total,
+                    sim_txt, sim_img, text_emb, img_emb, 0.0004, device=device,
+                )
+
+                recon     = autoencoder(features)
+                recon_err = torch.mean((recon - features) ** 2, dim=-1)
+
+                binary = np.where(labels > 0, 1, 0)
+                t_labels.extend(binary)
+                t_scores.extend(recon_err.cpu().numpy())
+
+                total_time   += time.time() - t0
+                total_inputs += len(labels)
+
+            tag_labels[tag] = np.array(t_labels)
+            tag_scores[tag] = np.array(t_scores)
+
+    return tag_labels, tag_scores, total_time, total_inputs
+
+
 def find_best_threshold(labels, scores):
     best_f1, best_th = 0.0, 0.0
     for th in np.linspace(scores.min(), scores.max(), 200):
@@ -447,28 +508,41 @@ if __name__ == "__main__":
 
     # =================================================================
     # FIX 5: Report on held-out TEST set with the val-selected threshold
+    #
+    # One joint pass — safe first, then all three unsafe datasets in order.
+    # The adaptive memory updates continuously, so each unsafe dataset is
+    # scored by a memory that has already adapted to all earlier batches.
+    # Per-dataset AUROC is extracted by partitioning the joint scores,
+    # matching how the paper likely computed Table 2 results.
     # =================================================================
-    print("\n=== Step 2: Evaluate on held-out test set ===")
+    print("\n=== Step 2: Evaluate on held-out test set (joint pass) ===")
 
-    # Overall
     reset_state()
-    test_labels, test_scores, t_time, t_inputs = extract_scores(
-        [test_safe_dl, test_unsafe_dl],
+    tag_labels, tag_scores, t_time, t_inputs = extract_scores_tagged(
+        [
+            ("safe",            test_safe_dl),
+            ("MM-SafetyBench",  mmsafety_test_dl),
+            ("FigStep",         figstep_test_dl),
+            ("JailbreakV-Nano", nano_test_dl),
+        ],
         concept_embeddings, autoencoder, memory_network, device, concept_freq,
     )
-    overall = compute_metrics(test_labels, test_scores, threshold)
 
-    # Per-dataset (each paired with test_safe)
+    safe_lbl = tag_labels["safe"]
+    safe_scr = tag_scores["safe"]
+
+    # Per-dataset: each dataset's scores vs the shared safe scores
     per_ds = {}
-    for name, ds_dl in [("MM-SafetyBench", mmsafety_test_dl),
-                         ("FigStep", figstep_test_dl),
-                         ("JailbreakV-Nano", nano_test_dl)]:
-        reset_state()
-        lbl, scr, _, _ = extract_scores(
-            [test_safe_dl, ds_dl],
-            concept_embeddings, autoencoder, memory_network, device, concept_freq,
-        )
+    for name in ["MM-SafetyBench", "FigStep", "JailbreakV-Nano"]:
+        lbl = np.concatenate([safe_lbl, tag_labels[name]])
+        scr = np.concatenate([safe_scr, tag_scores[name]])
         per_ds[name] = compute_metrics(lbl, scr, threshold)
+
+    # Overall: all scores combined
+    all_lbl = np.concatenate([safe_lbl] + [tag_labels[n] for n in ["MM-SafetyBench", "FigStep", "JailbreakV-Nano"]])
+    all_scr = np.concatenate([safe_scr] + [tag_scores[n] for n in ["MM-SafetyBench", "FigStep", "JailbreakV-Nano"]])
+    overall = compute_metrics(all_lbl, all_scr, threshold)
+    test_labels, test_scores = all_lbl, all_scr
 
     # --- Print results ---
     print(f"\n{'='*70}")
