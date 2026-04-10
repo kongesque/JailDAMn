@@ -183,9 +183,10 @@ Test safe: 218  |  Test unsafe: 1173  |  Threshold: 154.7873  |  Avg latency: 12
 |---------|------------|-------------|-----------|------------|
 | MM-SafetyBench | 0.9032 | 0.9472 | 0.8970 | 0.9155 |
 | FigStep | 0.9276 | 0.9608 | 0.9432 | 0.9616 |
-| JailbreakV-Nano | **0.9421** | 0.9210 | **0.9680** | — |
-| Overall AUROC | 0.9263 | 0.9550 | — | — |
-| Overall AUPR | — | — | **0.9817** | 0.9530 |
+| JailbreakV-Nano | **0.9421** | — | **0.9680** | — |
+| Overall | 0.9263 | 0.9550 | **0.9817** | 0.9530 |
+
+> Paper reports JailbreakV-**28k** (AUROC 0.9465, AUPR 0.9464), not Nano — no direct comparison for that row.
 
 JailbreakV-Nano AUROC and overall AUPR exceed the paper. The remaining ~0.04 gap on MM-SafetyBench and FigStep is expected from:
 
