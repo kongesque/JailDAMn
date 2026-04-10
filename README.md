@@ -1,33 +1,34 @@
 # JailDAM: Jailbreak Detection with Adaptive Memory for Vision-Language Model
 
-## System Requirements
+Reproduction of [arXiv:2504.03770](https://arxiv.org/abs/2504.03770) (COLM 2025). See `REPORT.md` for results.
 
-- **OS**: Linux (x86-64)
-- **Python**: 3.11
-- **CUDA**: 12.1
-- **GPU**: NVIDIA GPU with CUDA support required
-- **Package manager**: Conda
+## Requirements
 
-## Quick Start
-
-### 1. Download Data
-
-Download the dataset from [Google Drive](https://drive.google.com/drive/folders/16Ge5BKIbj6bbD0fJOPYT9i8o5lr7HNgc) and place it in `./data`.
-
-### 2. Set Up Environment
+- Python 3.11, PyTorch 2.4+, CUDA 12+
+- GPU required (tested on RTX 3090)
 
 ```bash
-conda env create -f environment.yml
-conda activate llava
+pip install transformers openai-clip scikit-learn accelerate datasets sentence-transformers
 ```
 
-### 3. Run
+## Data
 
-Open and execute `demo.ipynb` in Jupyter:
+Download datasets and place under `/data/`:
+
+| Dataset | Path |
+|---------|------|
+| MM-SafetyBench | `/data/mmsafety/` |
+| FigStep | `/data/fig_step/` |
+| JailbreakV-Nano | `/data/jailbreakv_nano/` |
+| MM-Vet | `/data/mm-vet/` |
+
+## Run
 
 ```bash
-jupyter notebook demo.ipynb
+python run_paper_eval.py
 ```
+
+Prints per-dataset and overall AUROC / AUPR / F1 with a threshold selected on a held-out val set.
 
 ## Citation
 
