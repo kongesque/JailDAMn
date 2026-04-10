@@ -1,108 +1,79 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-JailDAM (Jailbreak Detection with Adaptive Memory) is a research framework for detecting jailbreak attacks against Vision-Language Models (VLMs). It uses policy-driven unsafe knowledge representations in a memory network with test-time adaptive updates. Paper accepted at COLM 2025 (arXiv:2504.03770).
+JailDAM (Jailbreak Detection with Adaptive Memory) is a research framework for detecting jailbreak attacks against Vision-Language Models (VLMs). Paper accepted at COLM 2025 (arXiv:2504.03770).
 
-## Environment Setup
+## Runtime Environment
 
-```bash
-conda env create -f environment.yml
-conda activate llava
-```
+**RunPod image:** `runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04`
 
-Python 3.11 with PyTorch 2.2.0 (CUDA 12.1). No pip requirements.txt — all dependencies are in `environment.yml`.
-
-### Actual Runtime Environment (verified 2026-04-09)
-
-**No conda available** on this machine. Packages installed directly via pip into the system Python:
+PyTorch and CUDA come pre-installed in this image. Only install:
 
 ```bash
-pip3 install transformers openai-clip scikit-learn accelerate datasets sentence-transformers
+pip install transformers scikit-learn Pillow numpy
 ```
 
 | Component | Version |
 |-----------|---------|
-| Python | 3.11.10 |
-| PyTorch | 2.4.1+cu124 |
+| Python | 3.11 |
+| PyTorch | 2.4.0+cu124 |
 | CUDA | 12.4 |
-| GPU | NVIDIA GeForce RTX 3090 (1×) |
-| transformers | 5.5.1 |
-| openai-clip | 1.0.1 |
-| scikit-learn | 1.8.0 |
-| Jupyter | 4.2.5 (JupyterLab) |
+| GPU | NVIDIA GeForce RTX 3090 (1x) |
 
-**Note:** PyTorch version differs from `environment.yml` (2.2.0 pinned) — 2.4.1 is installed and works.
+No conda. No `environment.yml`. The repo is at `kongesque/JailDAMn` on GitHub (was a fork of `ShenzheZhu/JailDAM`, now standalone).
 
-## Running the Pipeline
-
-Three entrypoints are available:
-
-| Script | Purpose |
-|--------|---------|
-| `demo.ipynb` | Original interactive pipeline (Jupyter) |
-| `run_full.py` | CLI version mirroring the notebook: MM-Vet (safe) + MM-SafetyBench + FigStep + JailbreakV-Nano |
-| `run_paper_eval.py` | Paper-faithful eval: 30 concepts/category, 3-way safe split, subsampled unsafe (~528) and safe test (~218) |
-
-Run CLI scripts from the repo root:
+## Running
 
 ```bash
-python run_full.py
 python run_paper_eval.py
 ```
 
-Both print per-dataset and overall AUROC / AUPR / F1 / Precision / Recall plus latency.
+This is the only reliable entrypoint. Prints per-dataset and overall AUROC / AUPR / F1 / Precision / Recall. `run_full.py` and `demo.ipynb` are archived — they had threshold leakage and inflated metrics.
 
-### Dataset Requirements (must be present before running)
+### Dataset Setup
 
-All loaders expect data under `/data/`:
+Datasets live under `/data/`. Download and extract before running:
 
-| Dataset | Required paths |
-|---------|---------------|
-| JailbreakV-28k (`datasets/jailbreakv_28k.py`) | `/data/jailbreakv_28k/` (JSON + images) |
-| JailbreakV-Nano (`datasets/jailbreakv_nano.py`) | `/data/jailbreakv_nano/jailbreakv_nano/` (JSON + images) |
-| MM-SafetyBench (`datasets/mmsafety.py`) | `/data/mmsafety/` with `imgs/` and `unsafe_input/` subdirs |
-| FigStep (`datasets/figstep.py`) | `/data/fig_step/` (JSON + images) |
-| MM-Vet (`datasets/mmvet.py`) | `/data/mm-vet/sample.json` and `/data/mm-vet/images/` |
+| Dataset | Path |
+|---------|------|
+| MM-SafetyBench | `/data/mmsafety/` (needs `imgs/` and `unsafe_input/` subdirs) |
+| FigStep | `/data/fig_step/` |
+| JailbreakV-Nano | `/data/jailbreakv_nano/` |
+| MM-Vet | `/data/mm-vet/` (needs `sample.json` and `images/`) |
 
-Missing datasets produce 0 samples; `DataLoader` will raise `ValueError: num_samples should be a positive integer value`.
+Missing datasets cause `ValueError: num_samples should be a positive integer value`.
 
-`run_full.py` and `run_paper_eval.py` use MM-Vet + MM-SafetyBench + FigStep + JailbreakV-**Nano** (not 28k). JailbreakV-28k is only used via `demo.ipynb` / the old standalone loader.
+`gdown` works for downloading from Google Drive. Extraction via `python3 -c "import zipfile; zipfile.ZipFile('file.zip').extractall('/data/')"` (no `unzip` on RunPod).
 
 ## Architecture
 
-**Core data flow:**
-
 ```
 Image + Text
-  → CLIP embeddings (768-dim each, concatenated to 1536-dim)
-  → MemoryNetwork: soft attention over 1300 unsafe concept embeddings
-  → Autoencoder: encodes attention features, computes reconstruction error
-  → Decision: high error → Unsafe, low error → Safe
-  → Test-time adaptation: updates least-used concept embeddings with residuals
+  -> CLIP embeddings (768-dim each, concatenated to 1536-dim)
+  -> MemoryNetwork: soft attention over concept embeddings
+  -> Autoencoder: trained on safe data, computes reconstruction error
+  -> Decision: high error = Unsafe, low error = Safe
+  -> Test-time adaptation: updates least-used concept embeddings with residuals
 ```
 
 **Key files:**
 
-- `memory_network.py` — `MemoryNetwork` class: CLIP integration, soft attention over concept embeddings, 2-layer MLP classifier. This is the core module.
-- `concept.json` — 1300 unsafe concept embeddings across 14 harm categories (illegal activity, hate speech, fraud, physical harm, etc.). These seed the memory network.
-- `demo.ipynb` — Original interactive pipeline: dataset loading → autoencoder training on safe data → inference with threshold-based detection.
-- `run_full.py` — CLI version of the full evaluation (MM-Vet + MM-SafetyBench + FigStep + JailbreakV-Nano).
-- `run_paper_eval.py` — Paper-faithful CLI eval with proper train/val/test splits and subsampling to match paper numbers.
-- `utils.py` — Metric computation (AUROC, AUPR, F1, precision, recall) and shared utilities.
-- `ShieldEval.py` — Evaluation wrapper for the JailDAM-D defense variant, which prepends a defense prompt to queries detected as unsafe.
-- `generate_dataloader.py` — Dataset preprocessing and CLIP feature extraction shared across dataset loaders.
-- `SafeVLMDataset_MMsafety.py` — Standalone safe-split loader for MM-SafetyBench.
+- `run_paper_eval.py` — main eval script
+- `memory_network.py` — core module: CLIP integration, soft attention, MLP classifier
+- `concept.json` — 1300 unsafe concept embeddings across 14 harm categories
 
-**Dataset loaders** (under `datasets/` package, each has a `main()` function):
-- `datasets/jailbreakv_28k.py` — JailbreakV-28k (`UnsafeVLMDataset_28k`)
-- `datasets/jailbreakv_nano.py` — JailbreakV-Nano (`UnsafeVLMDataset_jailbreakv_nano`)
-- `datasets/mmsafety.py` — MM-SafetyBench (`UnsafeVLMDataset_MMsafety`)
-- `datasets/figstep.py` — FigStep (`UnsafeVLMDataset_fig_step`)
-- `datasets/mmvet.py` — MM-Vet safe/benign data (`VLMDataset_mmvet`)
+**Dataset loaders** (under `datasets/` package):
+- `datasets/mmsafety.py` — MM-SafetyBench, `attack_success.json` only (not failure)
+- `datasets/figstep.py` — FigStep
+- `datasets/jailbreakv_nano.py` — JailbreakV-Nano
+- `datasets/mmvet.py` — MM-Vet (safe/benign data)
 
-**Detection mechanism:** The autoencoder is trained exclusively on safe data. At inference, unsafe inputs produce high reconstruction error because they contain patterns not seen during training. The adaptive memory update replaces the least-frequently-used concept embedding with the residual from the current unsafe input, allowing the system to generalize to novel jailbreak strategies without retraining.
+**Archived** (not used by active scripts): `demo.ipynb`, `run_full.py`, `generate_dataloader.py`, `utils.py`, `ShieldEval.py`, `datasets/jailbreakv_28k.py`
 
-**JailDAM-D (defense variant):** If detection fires, a defense prompt is prepended to the original VLM query before passing it to the downstream model. This is handled in `ShieldEval.py`.
+## Known Issues
+
+- `datasets/mmsafety.py` must use `attack_success.json` only. Including `attack_failure.json` (1369 samples of jailbreaks the VLM already refused) tanks MM-SafetyBench AUROC from ~0.90 to ~0.83.
+- `transformers 5.x` returns `BaseModelOutputWithPooling` from `get_text/image_features()` instead of a tensor. `memory_network.py` handles this by extracting `.pooler_output`.
