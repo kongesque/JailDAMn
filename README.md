@@ -8,7 +8,13 @@ Reproduction of [arXiv:2504.03770](https://arxiv.org/abs/2504.03770) (COLM 2025)
 - GPU required (tested on RTX 3090)
 
 ```bash
-pip install torch transformers scikit-learn Pillow numpy
+pip install transformers scikit-learn Pillow numpy
+```
+
+If PyTorch is not already installed (e.g. not using a RunPod/NGC image):
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu124
 ```
 
 ## Data
