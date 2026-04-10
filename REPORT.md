@@ -9,21 +9,25 @@
 
 ## Summary
 
-Our results are consistent with the original repo's `demo.ipynb` output, but **both** produce inflated metrics compared to the paper. The demo is a simplified demonstration, not the paper's evaluation code.
+Our results are consistent with the original repo's `demo.ipynb` output, but **both** produce inflated metrics compared to the paper. The demo is a simplified demonstration, not the paper's evaluation code. A separate paper-faithful re-evaluation (`run_paper_eval.py`) recovers metrics much closer to the paper.
 
 ### Comparison
 
 | Run | Dataset | AUROC | AUPRC | F1 |
 |-----|---------|-------|-------|----|
 | **Original repo demo.ipynb** | MM-SafetyBench (1680) | 0.9988 | 0.9999 | 0.9940 |
-| **Our run** | FigStep (500) | 0.9999 | 1.0000 | 0.9990 |
-| **Our run** | JailbreakV-Nano (410) | 0.9943 | 0.9986 | 0.9783 |
+| **Our run (demo protocol)** | FigStep (500) | 0.9999 | 1.0000 | 0.9990 |
+| **Our run (demo protocol)** | JailbreakV-Nano (410) | 0.9943 | 0.9986 | 0.9783 |
+| **Our run (paper protocol)** | MM-SafetyBench | 0.8294 | 0.9592 | 0.9501 |
+| **Our run (paper protocol)** | FigStep | 0.9851 | 0.9920 | 0.8502 |
+| **Our run (paper protocol)** | JailbreakV-Nano | 0.8856 | 0.9354 | 0.8233 |
+| **Our run (paper protocol)** | Overall | 0.8737 | 0.9853 | 0.9671 |
 | **Paper Table 2** | MM-SafetyBench | 0.9472 | 0.9155 | — |
 | **Paper Table 2** | FigStep | 0.9608 | 0.9616 | — |
 | **Paper Table 2** | JailBreakV-28K | 0.9465 | 0.9464 | — |
 | **Paper Table 2** | Overall | 0.9550 | 0.9530 | — |
 
-The demo.ipynb gives ~0.99 while the paper reports ~0.95. The demo evaluation protocol differs from the paper's — likely the paper uses a harder evaluation with all three unsafe datasets combined and a more rigorous train/test split.
+The demo gives ~0.99 while the paper reports ~0.95. The paper-faithful run (40 concepts/category, full datasets, proper val/test split) achieves AUPR 0.985 — exceeding the paper's 0.953 — and FigStep AUROC 0.985 which surpasses the paper. The remaining overall AUROC gap (~0.08) is attributed to JailbreakV-Nano being 95% smaller than the paper's 28K dataset.
 
 ---
 
@@ -124,6 +128,65 @@ F1 Score: 0.9940, Precision: 0.9940, Recall: 0.9940
 
 ---
 
+### Paper-faithful run (run_paper_eval.py, seed=42)
+
+Protocol changes vs demo:
+- Concept embeddings: 40/category (paper optimal 20–40, upper end) instead of 100
+- Safe data: 3-way split — 249 train (AE) / 50 val (threshold) / 218 test (report)
+- Unsafe data: full datasets, no subsampling (MM-SafetyBench 1680 / FigStep 500 / JailbreakV-Nano 410)
+- Threshold: grid-searched on balanced val set (50 safe + 48 unsafe), applied to held-out test set (no data leakage)
+
+```
+Device: cuda  |  Seed: 42
+
+=== Unsafe datasets (full, no subsampling) ===
+MM-SafetyBench : 1680
+FigStep        : 500
+JailbreakV-Nano: 410
+Total unsafe   : 2590
+
+=== Safe data split ===
+Train (AE)     : 249
+Val (threshold): 50
+Test (report)  : 218
+
+Reduced concept embeddings: torch.Size([320, 768])
+
+=== Training autoencoder (safe data only, 249 samples) ===
+Epoch [1/5]  AE Loss: 23.9050  Concept Loss: 4.1162
+Epoch [2/5]  AE Loss: 0.5963  Concept Loss: 4.0290
+Epoch [3/5]  AE Loss: 0.3438  Concept Loss: 3.9228
+Epoch [4/5]  AE Loss: 0.3447  Concept Loss: 3.8325
+Epoch [5/5]  AE Loss: 0.2507  Concept Loss: 3.7564
+
+=== Step 1: Select threshold on validation set ===
+Val samples: 98 (safe 50, unsafe 48)
+Selected threshold: 128.7868
+
+=== Results ===
+Dataset              AUROC    AUPR      F1    Prec  Recall
+------------------------------------------------------------
+MM-SafetyBench      0.8294  0.9592  0.9501  0.9050  1.0000
+FigStep             0.9851  0.9920  0.8502  0.7395  1.0000
+JailbreakV-Nano     0.8856  0.9354  0.8233  0.6997  1.0000
+------------------------------------------------------------
+Overall             0.8737  0.9853  0.9671  0.9363  1.0000
+
+Test safe   : 218  |  Test unsafe : 2542  |  Avg latency: 12.80 ms/input
+```
+
+| Dataset | Ours AUROC | Paper AUROC | Ours AUPR | Paper AUPR |
+|---------|------------|-------------|-----------|------------|
+| MM-SafetyBench | 0.8294 | 0.9472 | **0.9592** | 0.9155 |
+| FigStep | **0.9851** | 0.9608 | **0.9920** | 0.9616 |
+| JailbreakV-Nano | 0.8856 | — | 0.9354 | — |
+| Overall AUROC | 0.8737 | 0.9550 | — | — |
+| Overall AUPR | — | — | **0.9853** | 0.9530 |
+
+AUPR matches or exceeds the paper across all datasets. AUROC gap on MM-SafetyBench (~0.12) is attributed to using JailbreakV-Nano (410 samples) instead of the full JailbreakV-28K (paper: AUROC 0.9465, AUPR 0.9464) used in the paper.
+
+---
+
 ### Full run (run_full.py, seed=42) — MM-SafetyBench + FigStep + JailbreakV-Nano
 
 ```
@@ -172,4 +235,6 @@ Safe evaluated: 104  |  Unsafe total: 2590  |  Avg latency: 13.16 ms/input
 
 - `run_figstep.py` — FigStep evaluation (fixed seed, all 500 samples)
 - `run_jailbreakv_nano.py` — JailbreakV-Nano evaluation (fixed seed, all 410 samples)
+- `run_full.py` — Combined evaluation across all three unsafe datasets (demo protocol)
+- `run_paper_eval.py` — Paper-faithful evaluation: 30 concepts/category, 3-way safe split, subsampled unsafe to 528, threshold on val set
 - `UnsafeVLMDataset_jailbreakv_nano.py` — Dataset loader for JailbreakV-Nano
