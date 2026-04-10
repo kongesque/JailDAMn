@@ -1,8 +1,7 @@
-from UnsafeVLMDataset_28k import main as main_unsafe_28k
-from UnsafeVLMDataset_MMsafety import main as main_unsafe_mmsafety
-from UnsafeVLMDataset_fig_step import main as main_unsafe_fig_step
-from VLMDataset_vlguard import main as main_safe_vlguard
-from VLMDataset_mmvet import main as main_safe_mmvet
+from datasets.jailbreakv_28k import main as main_unsafe_28k
+from datasets.mmsafety import main as main_unsafe_mmsafety
+from datasets.figstep import main as main_unsafe_fig_step
+from datasets.mmvet import main as main_safe_mmvet
 from transformers import AutoProcessor, AutoModelForZeroShotImageClassification, CLIPModel, CLIPProcessor
 from sklearn.metrics import roc_auc_score, average_precision_score, precision_recall_fscore_support
 import torch
@@ -33,13 +32,12 @@ def collate_fn(batch):
 # Load datasets
 def load_selected_datasets(unsafe_name, safe_name, model, processor):
     unsafe_datasets = {
-        "UnsafeVLMDataset_28k": main_unsafe_28k,
-        "UnsafeVLMDataset_MMsafety": main_unsafe_mmsafety,
-        "UnsafeVLMDataset_fig_step": main_unsafe_fig_step
+        "jailbreakv_28k": main_unsafe_28k,
+        "mmsafety": main_unsafe_mmsafety,
+        "figstep": main_unsafe_fig_step,
     }
     safe_datasets = {
-        "VLMDataset_mmvet": main_safe_mmvet,
-        "VLMDataset_vlguard": main_safe_vlguard
+        "mmvet": main_safe_mmvet,
     }
     unsafe_dataset, unsafe_dataloader = unsafe_datasets[unsafe_name](model, processor)
     safe_dataset, safe_dataloader = safe_datasets[safe_name](model, processor)
