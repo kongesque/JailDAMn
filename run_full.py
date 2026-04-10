@@ -28,10 +28,10 @@ from transformers import (
     AutoModelForZeroShotImageClassification,
 )
 
-from UnsafeVLMDataset_MMsafety import main as main_mmsafety
-from UnsafeVLMDataset_fig_step import main as main_figstep
-from UnsafeVLMDataset_jailbreakv_nano import main as main_nano
-from SafeVLMDataset_MMsafety import main as main_safe_mmsafety
+from datasets.mmsafety import main as main_mmsafety
+from datasets.figstep import main as main_figstep
+from datasets.jailbreakv_nano import main as main_nano
+from datasets.mmvet import main as main_safe_mmvet
 from memory_network import MemoryNetwork
 
 # -------------------------
