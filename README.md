@@ -8,7 +8,7 @@ Reproduction of [arXiv:2504.03770](https://arxiv.org/abs/2504.03770) (COLM 2025)
 - GPU required (tested on RTX 3090)
 
 ```bash
-pip install transformers openai-clip scikit-learn accelerate datasets sentence-transformers
+pip install torch transformers scikit-learn Pillow numpy
 ```
 
 ## Data
