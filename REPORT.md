@@ -18,6 +18,7 @@
 | Paper Table 2 | FigStep | 0.9608 | 0.9616 | - |
 | Paper Table 2 | JailBreakV-28K | 0.9465 | 0.9464 | - |
 | Paper Table 2 | Overall | 0.9550 | 0.9530 | - |
+| Our run (text-based) | BeaverTails | 0.6507 | 0.7438 | 0.8320 |
 
 ---
 
@@ -122,3 +123,30 @@ The remaining gap on MM-SafetyBench and FigStep comes down to test set size (we 
 
 - `transformers 5.5.1` returns `BaseModelOutputWithPooling` instead of a tensor from `get_text/image_features()`. Fixed in `memory_network.py` by extracting `.pooler_output`.
 - Datasets moved into `datasets/` package. `mmsafety.py` fixed to use `attack_success.json` only.
+
+---
+
+### 4. Text-based run (BeaverTails, seed=42)
+
+BeaverTails only, split by `is_safe` label. Image features zeroed out; text half of the 1536-dim input populated normally.
+
+```
+BeaverTails (is_safe=False) : 500 samples
+BeaverTails (is_safe=True)  : 517 samples  →  Train: 249  |  Val: 50  |  Test: 218
+
+Epoch [1/5]  AE Loss: 16.8834  Concept Loss: 4.0312
+Epoch [2/5]  AE Loss: 0.4127  Concept Loss: 3.9687
+Epoch [3/5]  AE Loss: 0.2891  Concept Loss: 3.8841
+Epoch [4/5]  AE Loss: 0.2134  Concept Loss: 3.8012
+Epoch [5/5]  AE Loss: 0.1876  Concept Loss: 3.7291
+
+Val AUROC: 0.6831  |  Threshold: 138.4219
+
+Dataset              AUROC    AUPR      F1    Prec  Recall
+--------------------------------------------------------------
+BeaverTails         0.6507  0.7438  0.8320  0.7123  1.0000
+
+Safe: 218  |  Unsafe: 500  |  Latency: 8.43 ms/input
+```
+
+AUROC drops significantly vs vision+text runs: zeroing the image half masks discrimination signal, and BeaverTails safe/unsafe text distributions overlap heavily in CLIP space.
