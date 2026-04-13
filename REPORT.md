@@ -150,3 +150,5 @@ Safe: 218  |  Unsafe: 500  |  Latency: 8.43 ms/input
 ```
 
 AUROC drops significantly vs vision+text runs: zeroing the image half masks discrimination signal, and BeaverTails safe/unsafe text distributions overlap heavily in CLIP space.
+
+The image channel carries most of JailDAM's signal. Zero it out and you're running a visual jailbreak detector on text-only input. it was never designed for this. 0.65 is basically what random looks like once you account for class imbalance.
