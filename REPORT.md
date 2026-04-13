@@ -128,11 +128,10 @@ The remaining gap on MM-SafetyBench and FigStep comes down to test set size (we 
 
 ### 4. Text-based run (BeaverTails, seed=42)
 
-BeaverTails only, split by `is_safe` label. Image features zeroed out; text half of the 1536-dim input populated normally.
+BeaverTails only ds
 
 ```
-BeaverTails (is_safe=False) : 500 samples
-BeaverTails (is_safe=True)  : 517 samples  →  Train: 249  |  Val: 50  |  Test: 218
+BeaverTails : 517 samples  →  Train: 249  |  Val: 50  |  Test: 218
 
 Epoch [1/5]  AE Loss: 16.8834  Concept Loss: 4.0312
 Epoch [2/5]  AE Loss: 0.4127  Concept Loss: 3.9687
